@@ -6,6 +6,7 @@
 #include <vector>
 #include <atomic>
 #include <fstream>
+#include <chrono>
 
 namespace UserData
 {
@@ -29,10 +30,11 @@ template <typename DataType>
 class Logger
 {
 public:
-    Logger(std::string header, std::ostream& output)
+    Logger(std::string header, std::ostream& output, size_t bufferSize=1)
         :
           worker(&Logger<DataType>::ProcessBuffer, this)
         , outputStream(output)
+        , bufferSize{bufferSize}
     {
         outputStream << header << std::endl;
     }
@@ -43,7 +45,10 @@ public:
             std::lock_guard<std::mutex> lk(bufferLock);
             buffer.push_back(std::move(data));
         }
-        bufferFilledCondition.notify_one();
+        if(buffer.size() >= bufferSize)
+        {
+            bufferFilledCondition.notify_one();
+        }
         return *this;
     }
     ~Logger()
@@ -77,6 +82,7 @@ private:
     std::vector<DataType> doubleBuffer;
     std::thread worker;
     std::ostream& outputStream;
+    size_t bufferSize;
 };
 }
 
@@ -87,8 +93,9 @@ int main()
     std::ofstream fs("testLog.csv");
     LoggingFacility::Logger<DataToLog> logger(header, fs);
     logger << DataToLog{1, 2.0, "Third"}
-           << DataToLog{2, 4.0, "h"}
-           << DataToLog{3, 8.0, "lk"}
+           << DataToLog{2, 4.0, "h"};
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    logger << DataToLog{3, 8.0, "lk"}
            << DataToLog{4, 16.0, "hello"};
     return 0;
 }
