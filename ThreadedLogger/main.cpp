@@ -5,6 +5,7 @@
 #include <condition_variable>
 #include <vector>
 #include <atomic>
+#include <fstream>
 
 namespace UserData
 {
@@ -28,7 +29,7 @@ template <typename DataType>
 class Logger
 {
 public:
-    Logger(std::string header, std::ostream& output = std::cout)
+    Logger(std::string header, std::ostream& output)
         :
           worker(&Logger<DataType>::ProcessBuffer, this)
         , outputStream(output)
@@ -83,7 +84,8 @@ int main()
 {
     using UserData::DataToLog;
     std::string header("first,second,third");
-    LoggingFacility::Logger<DataToLog> logger(header);
+    std::ofstream fs("testLog.csv");
+    LoggingFacility::Logger<DataToLog> logger(header, fs);
     logger << DataToLog{1, 2.0, "Third"}
            << DataToLog{2, 4.0, "h"}
            << DataToLog{3, 8.0, "lk"}
